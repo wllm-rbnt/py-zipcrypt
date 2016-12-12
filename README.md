@@ -1,5 +1,6 @@
-# Support for zip files traditional encryption
+# Support for zip files traditional encryption in Python 2.7
 
+- Not tested on Python 3
 - Implemented for ZipFile.write(), NOT (yet) for ZipFile.writestr()
 - Encryption is active if password is set with ZipFile.setpassword()
 - Default password is 'infected'
