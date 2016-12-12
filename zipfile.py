@@ -476,6 +476,66 @@ class _ZipDecrypter:
         self._UpdateKeys(c)
         return c
 
+class _ZipEncrypter:
+    """Class to handle traditional PKWare encryption of files stored within
+    a ZIP archive.
+
+    ZIP supports a password-based form of encryption. Even though known
+    plaintext attacks have been found against it, it is still useful
+    to be able to get data out of such a file.
+
+    Usage:
+        ze = _ZipEncrypter(mypwd)
+        cypher_char = ze(plain_char)
+        cypher_text = map(ze, plain_text)
+    """
+
+    def _GenerateCRCTable():
+        """Generate a CRC-32 table.
+
+        ZIP encryption uses the CRC32 one-byte primitive for scrambling some
+        internal keys. We noticed that a direct implementation is faster than
+        relying on binascii.crc32().
+        """
+        poly = 0xedb88320
+        table = [0] * 256
+        for i in range(256):
+            crc = i
+            for j in range(8):
+                if crc & 1:
+                    crc = ((crc >> 1) & 0x7FFFFFFF) ^ poly
+                else:
+                    crc = ((crc >> 1) & 0x7FFFFFFF)
+            table[i] = crc
+        return table
+    crctable = _GenerateCRCTable()
+
+    def _crc32(self, ch, crc):
+        """Compute the CRC32 primitive on one byte."""
+        return ((crc >> 8) & 0xffffff) ^ self.crctable[(crc ^ ord(ch)) & 0xff]
+
+    def __init__(self, pwd):
+        self.key0 = 305419896
+        self.key1 = 591751049
+        self.key2 = 878082192
+        for p in pwd:
+            self._UpdateKeys(p)
+
+    def _UpdateKeys(self, c):
+        self.key0 = self._crc32(c, self.key0)
+        self.key1 = (self.key1 + (self.key0 & 255)) & 4294967295
+        self.key1 = (self.key1 * 134775813 + 1) & 4294967295
+        self.key2 = self._crc32(chr((self.key1 >> 24) & 255), self.key2)
+
+    def __call__(self, c):
+        """Encrypt a single character."""
+        t = c
+        c = ord(c)
+        k = self.key2 | 2
+        c = c ^ (((k * (k^1)) >> 8) & 255)
+        c = chr(c)
+        self._UpdateKeys(t)
+        return c
 
 compressor_names = {
     0: 'store',
@@ -751,7 +811,7 @@ class ZipFile(object):
         if isinstance(file, basestring):
             self._filePassed = 0
             self.filename = file
-            modeDict = {'r' : 'rb', 'w': 'wb', 'a' : 'r+b'}
+            modeDict = {'r' : 'rb', 'w': 'w+b', 'a' : 'r+b'}
             try:
                 self.fp = open(file, modeDict[mode])
             except IOError:
@@ -1164,6 +1224,12 @@ class ZipFile(object):
             zip64 = self._allowZip64 and \
                     zinfo.file_size * 1.05 > ZIP64_LIMIT
             self.fp.write(zinfo.FileHeader(zip64))
+
+            plain_header_position = self.fp.tell()
+            if self.pwd:
+                # Provision space for traditional encryption header
+                self.fp.seek(plain_header_position + 12)
+
             if zinfo.compress_type == ZIP_DEFLATED:
                 cmpr = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION,
                      zlib.DEFLATED, -15)
@@ -1187,6 +1253,10 @@ class ZipFile(object):
             zinfo.compress_size = compress_size
         else:
             zinfo.compress_size = file_size
+
+        if self.pwd:
+            zinfo.compress_size += 12
+
         zinfo.CRC = CRC
         zinfo.file_size = file_size
         if not zip64 and self._allowZip64:
@@ -1202,6 +1272,23 @@ class ZipFile(object):
         self.fp.seek(position, 0)
         self.filelist.append(zinfo)
         self.NameToInfo[zinfo.filename] = zinfo
+
+        if self.pwd:
+            # Write tradional encryption header
+            self.fp.seek(plain_header_position)
+            self.fp.write(os.urandom(10))
+            self.fp.write(struct.pack('B',(zinfo.CRC >> 16) & 0xff))
+            self.fp.write(struct.pack('B',(zinfo.CRC >> 24) & 0xff))
+            # Encrypt content
+            ze = _ZipEncrypter(self.pwd)
+            self.fp.seek(plain_header_position)
+            plain_text = self.fp.read()
+            cipher_text = map(ze, plain_text)
+            self.fp.seek(plain_header_position)
+            self.fp.write(''.join(cipher_text))
+            # Adjust flags
+            zinfo.flag_bits ^= 0x1
+            self.fp.flush()
 
     def writestr(self, zinfo_or_arcname, bytes, compress_type=None):
         """Write a file into the archive.  The contents is the string
@@ -1508,6 +1595,7 @@ def main(args = None):
             sys.exit(1)
 
         with ZipFile(args[1], 'r') as zf:
+            zf.setpassword("infected")
             zf.extractall(args[2])
 
     elif args[0] == '-c':
@@ -1527,6 +1615,7 @@ def main(args = None):
             # else: ignore
 
         with ZipFile(args[1], 'w', allowZip64=True) as zf:
+            zf.setpassword("infected")
             for path in args[2:]:
                 zippath = os.path.basename(path)
                 if not zippath:
