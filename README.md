@@ -1,6 +1,6 @@
 # Support for zip files traditional encryption in Python 2.7 & 3.4
 
-- odified version of /usr/lib64/python2.7/zipfile.py and /usr/lib64/python3.4/zipfile.py
+- Modified versions of /usr/lib64/python2.7/zipfile.py and /usr/lib64/python3.4/zipfile.py
 - Python Software Foundation License applies
 - Implemented for ZipFile.write(), NOT (yet) for ZipFile.writestr()
 - Encryption is active if password is set with ZipFile.setpassword()
