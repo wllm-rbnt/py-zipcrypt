@@ -7,3 +7,31 @@
 - Encryption is active if password is set with ZipFile.setpassword()
 - Default password is set to 'infected' for cli commands
 - This implementation is probably not very good at handling large files
+
+Example usage:
+--------------
+
+# Python 2.7
+
+	...
+	# Initialize a new password protected zip file from an empty buffer
+	zipfile_as_buffer = ''
+	zipfile_as_filehandler = io.BytesIO(zipfile_as_buffer)
+	zipfile_object = ZipFile(zipfile_as_filehandler, 'w', allowZip64=True)
+	zipfile_object.setpassword("infected")
+
+	# Define data to be archived
+	data1 = "blabla"
+	data1_as_filehandler = io.BytesIO(data1)
+	data2 = "blibli"
+	data2_as_filehandler = io.BytesIO(data2)
+
+	# Deflate & add two file entries to the encrypted archive
+	zipfile_object.writestr('bla', data1, compress_type=ZIP_DEFLATED)
+	zipfile_object.writestr('bli', data2, compress_type=ZIP_DEFLATED)
+	zipfile_object.close()
+
+	# Do whatever you want with the resulting zip file
+	zipfile_as_filehandler.seek(0)
+	sys.stdout.write(zipfile_as_filehandler.read())
+	...
