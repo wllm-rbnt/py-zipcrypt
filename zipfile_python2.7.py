@@ -1274,7 +1274,7 @@ class ZipFile(object):
         self.NameToInfo[zinfo.filename] = zinfo
 
         if self.pwd:
-            # Write tradional encryption header
+            # Write traditional encryption header
             self.fp.seek(plain_header_position)
             self.fp.write(os.urandom(10))
             self.fp.write(struct.pack('B',(zinfo.CRC >> 16) & 0xff))
@@ -1326,12 +1326,35 @@ class ZipFile(object):
             zinfo.compress_size = len(bytes)    # Compressed size
         else:
             zinfo.compress_size = zinfo.file_size
+
+	if self.pwd:
+            zinfo.compress_size += 12
+
         zip64 = zinfo.file_size > ZIP64_LIMIT or \
                 zinfo.compress_size > ZIP64_LIMIT
         if zip64 and not self._allowZip64:
             raise LargeZipFile("Filesize would require ZIP64 extensions")
         self.fp.write(zinfo.FileHeader(zip64))
-        self.fp.write(bytes)
+
+        if self.pwd:
+            plain_header_position = self.fp.tell()
+            # Write traditional encryption header
+            self.fp.write(os.urandom(10))
+            self.fp.write(struct.pack('B',(zinfo.CRC >> 16) & 0xff))
+            self.fp.write(struct.pack('B',(zinfo.CRC >> 24) & 0xff))
+            self.fp.write(bytes)
+            # Encrypt content
+            ze = _ZipEncrypter(self.pwd)
+            self.fp.seek(plain_header_position)
+            plain_text = self.fp.read()
+            cipher_text = map(ze, plain_text)
+            self.fp.seek(plain_header_position)
+            self.fp.write(''.join(cipher_text))
+            # Adjust flags
+            zinfo.flag_bits ^= 0x1
+	else:
+            self.fp.write(bytes)
+
         if zinfo.flag_bits & 0x08:
             # Write CRC and file sizes after the file data
             fmt = '<LQQ' if zip64 else '<LLL'
