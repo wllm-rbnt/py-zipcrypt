@@ -1,5 +1,7 @@
 # Support for PKWARE traditional encryption for Zip files in Python 2.7 & 3.4
 
+## Description
+
 - Modified versions of /usr/lib64/python2.7/zipfile.py and /usr/lib64/python3.4/zipfile.py
 - Python Software Foundation License applies
 - Implemented for ZipFile.write() -- file operations
@@ -12,6 +14,7 @@
 
 - Python 2.7 - in-memory operations
 
+	```python
 	...
 	# Initialize a new password protected zip file from an empty buffer
 	zipfile_as_buffer = ''
@@ -34,3 +37,4 @@
 	zipfile_as_filehandler.seek(0)
 	sys.stdout.write(zipfile_as_filehandler.read())
 	...
+	```
