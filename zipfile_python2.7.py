@@ -1225,9 +1225,9 @@ class ZipFile(object):
                     zinfo.file_size * 1.05 > ZIP64_LIMIT
             self.fp.write(zinfo.FileHeader(zip64))
 
+            # Provision space for traditional encryption header
             plain_header_position = self.fp.tell()
             if self.pwd:
-                # Provision space for traditional encryption header
                 self.fp.seek(plain_header_position + 12)
 
             if zinfo.compress_type == ZIP_DEFLATED:
@@ -1254,6 +1254,7 @@ class ZipFile(object):
         else:
             zinfo.compress_size = file_size
 
+        # Adjust encrypted file size in header
         if self.pwd:
             zinfo.compress_size += 12
 
@@ -1327,6 +1328,7 @@ class ZipFile(object):
         else:
             zinfo.compress_size = zinfo.file_size
 
+        # Adjust encrypted file size in header
 	if self.pwd:
             zinfo.compress_size += 12
 
