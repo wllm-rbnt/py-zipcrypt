@@ -1,4 +1,4 @@
-# Support for Zip files traditional encryption in Python 2.7 & 3.4
+# Support for PKWARE traditional encryption for Zip files in Python 2.7 & 3.4
 
 - Modified versions of /usr/lib64/python2.7/zipfile.py and /usr/lib64/python3.4/zipfile.py
 - Python Software Foundation License applies
@@ -8,10 +8,9 @@
 - Default password is set to 'infected' for cli commands
 - This implementation is probably not very good at handling large files
 
-Example usage:
---------------
+## Example usage:
 
-# Python 2.7
+- Python 2.7 - in-memory operations
 
 	...
 	# Initialize a new password protected zip file from an empty buffer
