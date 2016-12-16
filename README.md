@@ -38,3 +38,30 @@
 	sys.stdout.write(zipfile_as_filehandler.read())
 	...
 	```
+
+- Python 3.4 - in-memory operations
+
+	```python
+	...
+	# Initialize a new password protected zip file from an empty buffer
+	zipfile_as_buffer = ''
+	zipfile_as_filehandler = io.BytesIO(bytes(zipfile_as_buffer, "utf-8"))
+	zipfile_object = ZipFile(zipfile_as_filehandler, 'w', allowZip64=True)
+	zipfile_object.setpassword(bytes("infected", "utf-8"))
+
+	# Define data to be archived
+	data1 = "blabla"
+	data1_as_filehandler = io.BytesIO(bytes(data1, "utf-8"))
+	data2 = "blibli"
+	data2_as_filehandler = io.BytesIO(bytes(data2, "utf-8"))
+
+	# Deflate & add two file entries to the encrypted archive
+	zipfile_object.writestr('bla', data1, compress_type=ZIP_DEFLATED)
+	zipfile_object.writestr('bli', data2, compress_type=ZIP_DEFLATED)
+	zipfile_object.close()
+
+	# Do whatever you want with the resulting zip file
+	zipfile_as_filehandler.seek(0)
+	sys.stdout.buffer.write(zipfile_as_filehandler.read())
+	...
+	```
