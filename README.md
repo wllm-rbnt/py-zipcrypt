@@ -68,6 +68,4 @@
 	...
 	```
 
-## Links
-
 [1]: http://math.ucr.edu/~mike/zipattacks.pdf
