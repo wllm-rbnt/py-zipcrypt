@@ -1,4 +1,4 @@
-# Support for PKWARE traditional encryption for Zip files in Python 2.7 & 3.4
+# Support for traditional PKWARE encryption for Zip files in Python 2.7 & 3.4
 
 ## Description
 
@@ -9,8 +9,10 @@
 - Encryption is active if password is set with ZipFile.setpassword()
 - Default password is set to 'infected' for cli commands
 - This implementation is probably not very good at handling large files
+- *WARNING* (you already know this) This encryption scheme should not be
+	used to protect sensitive information, it is known to be broken (see [this paper][1]).
 
-## Example usage:
+## Example usage
 
 - Python 2.7 - in-memory operations
 
@@ -65,3 +67,7 @@
 	sys.stdout.buffer.write(zipfile_as_stream.read())
 	...
 	```
+
+## Links
+
+[1]: http://math.ucr.edu/~mike/zipattacks.pdf
